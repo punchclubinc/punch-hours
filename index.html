@@ -1,0 +1,1905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Punch Hours — Employee Tracker</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #222536;
+  --border: #2a2d3d;
+  --primary: #ff6b2b;
+  --primary-hover: #e55a1a;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --purple: #8b5cf6;
+  --radius: 8px;
+  --shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.header {
+  background: var(--surface);
+  border-bottom: 2px solid var(--primary);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  height: 60px;
+  gap: 16px;
+}
+
+.logo { font-size: 22px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+.logo span { color: var(--text); }
+.header-sub { font-size: 12px; color: var(--muted); }
+.header-spacer { flex: 1; }
+.header-export { display: flex; gap: 8px; }
+
+.nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  padding: 0 24px;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.nav-tab {
+  padding: 12px 16px;
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.main { max-width: 1300px; margin: 0 auto; padding: 24px; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Cards */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.card-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.card-value { font-size: 30px; font-weight: 800; color: var(--text); line-height: 1; }
+.card-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+.grid { display: grid; gap: 16px; }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-title { font-size: 18px; font-weight: 700; }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-success { background: var(--success); color: #fff; }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-icon { padding: 5px 7px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); color: var(--muted); cursor: pointer; transition: all 0.15s; font-size: 13px; }
+.btn-icon:hover { color: var(--text); background: var(--border); }
+
+/* Tables */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { background: var(--surface2); padding: 10px 14px; text-align: left; font-weight: 700; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+.badge-regular   { background: rgba(16,185,129,0.15);  color: var(--success); }
+.badge-overtime  { background: rgba(245,158,11,0.15);  color: var(--warning); }
+.badge-sick      { background: rgba(239,68,68,0.15);   color: var(--danger); }
+.badge-vacation  { background: rgba(59,130,246,0.15);  color: var(--info); }
+.badge-holiday   { background: rgba(139,92,246,0.15);  color: var(--purple); }
+.badge-unpaid    { background: rgba(100,116,139,0.15); color: var(--muted); }
+.badge-other     { background: rgba(100,116,139,0.15); color: var(--muted); }
+.badge-active    { background: rgba(16,185,129,0.15);  color: var(--success); }
+.badge-inactive  { background: rgba(100,116,139,0.15); color: var(--muted); }
+
+/* Forms */
+.form-group { margin-bottom: 14px; }
+label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+input, select, textarea {
+  width: 100%; padding: 9px 12px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text); font-size: 14px;
+  transition: border-color 0.15s; outline: none;
+  font-family: inherit;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+textarea { resize: vertical; min-height: 60px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 540px; max-height: 92vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.6); }
+.modal-lg { max-width: 800px; }
+.modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-close { color: var(--muted); cursor: pointer; font-size: 22px; line-height: 1; background: none; border: none; padding: 0; }
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+/* Filter bar */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; flex-wrap: wrap; }
+.filter-bar input, .filter-bar select { width: auto; min-width: 130px; }
+
+/* Empty state */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state h3 { font-size: 16px; color: var(--text); margin-bottom: 6px; }
+
+/* Employee card */
+.emp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: all 0.15s; }
+.emp-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+.emp-avatar { width: 46px; height: 46px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: #fff; flex-shrink: 0; }
+.emp-name { font-weight: 700; font-size: 15px; }
+.emp-title { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.emp-rate { font-size: 22px; font-weight: 800; color: var(--primary); margin-top: 10px; }
+
+/* Rate history */
+.rate-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--surface2); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 6px; }
+.rate-amount { font-weight: 800; font-size: 17px; }
+.rate-date { font-size: 12px; color: var(--muted); }
+.rate-note { font-size: 11px; color: var(--muted); font-style: italic; }
+.current-tag { background: rgba(255,107,43,0.15); color: var(--primary); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 99px; text-transform: uppercase; }
+.raise-arrow { color: var(--success); font-size: 12px; font-weight: 700; }
+
+/* Progress bar */
+.progress { height: 6px; background: var(--surface2); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+.progress-bar { height: 100%; border-radius: 99px; background: var(--primary); transition: width 0.3s; }
+
+/* Period selector */
+.period-btn { padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.15s; }
+.period-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+/* Stat rows */
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.stat-row:last-child { border-bottom: none; }
+.stat-row-label { color: var(--muted); }
+.stat-row-value { font-weight: 700; }
+
+/* Info note */
+.info-note { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: rgba(255,107,43,0.07); border-radius: var(--radius); border-left: 3px solid var(--primary); font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+
+/* Divider */
+.divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+.mt8 { margin-top: 8px; }
+.mt16 { margin-top: 16px; }
+.mb8 { margin-bottom: 8px; }
+.mb16 { margin-bottom: 16px; }
+
+/* Alert */
+.alert { padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin-bottom: 14px; }
+.alert-warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: var(--warning); }
+
+/* Totals row */
+.totals-bar { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin-top: 12px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 13px; }
+.totals-item { display: flex; flex-direction: column; gap: 2px; }
+.totals-label { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+.totals-value { font-weight: 800; font-size: 16px; }
+
+/* Timesheet */
+.ts-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+.ts-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 860px; }
+.ts-table th { background: var(--surface2); padding: 9px 8px; text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+.ts-table th:first-child { text-align: left; padding-left: 14px; }
+.ts-cell { padding: 5px 4px; border-bottom: 1px solid var(--border); text-align: center; vertical-align: middle; }
+.ts-weekend { background: rgba(0,0,0,0.18); }
+.ts-emp-cell { padding: 8px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.ts-total-cell { padding: 8px 14px; border-bottom: 1px solid var(--border); text-align: right; font-weight: 800; font-size: 14px; white-space: nowrap; }
+.ts-pay-cell { color: var(--primary); }
+.ts-hours-input { width: 50px; padding: 5px 4px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 13px; text-align: center; font-family: inherit; }
+.ts-hours-input:focus { border-color: var(--primary); outline: none; }
+.ts-type-select { width: 72px; padding: 3px 4px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--muted); font-size: 11px; margin-top: 4px; font-family: inherit; display: block; margin-left: auto; margin-right: auto; }
+.ts-totals-row { background: var(--surface2); }
+.ts-totals-row td { border-top: 2px solid var(--border); font-weight: 800; font-size: 13px; }
+.ts-note-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--warning); margin-left: 4px; vertical-align: middle; }
+/* PIN overlay */
+#pin-overlay { display:none; position:fixed; inset:0; background:var(--bg); z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+#pin-input { width:190px; text-align:center; font-size:30px; letter-spacing:10px; padding:16px 8px; border:2px solid var(--border); border-radius:12px; background:var(--surface); color:var(--text); outline:none; }
+#pin-input:focus { border-color:var(--primary); }
+#pin-error { color:var(--danger); font-size:13px; height:20px; font-weight:700; }
+#sync-indicator { font-size:11px; font-weight:700; min-width:80px; text-align:right; transition:color 0.3s; }
+
+@media print {
+  .header, .nav, .section-header .btn, .btn, .modal-overlay { display: none !important; }
+  body { background: #fff; color: #000; }
+  .ts-table, .ts-hours-input, .ts-type-select { border-color: #ccc; color: #000; background: #fff; }
+  .ts-pay-cell { color: #000; font-weight: 900; }
+  .ts-weekend { background: #f5f5f5; }
+}
+
+@media (max-width: 900px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .form-row, .form-row-3 { grid-template-columns: 1fr; }
+  .main { padding: 14px; }
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .filter-bar input, .filter-bar select { width: 100%; min-width: unset; }
+}
+</style>
+</head>
+<body>
+
+<!-- PIN OVERLAY -->
+<div id="pin-overlay">
+  <div style="font-size:32px;font-weight:800;color:var(--primary);letter-spacing:-0.5px">PUNCH<span style="color:var(--text)"> HOURS</span></div>
+  <div style="font-size:13px;color:var(--muted)">Enter your PIN to continue</div>
+  <input id="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="••••" maxlength="8"
+    onkeydown="if(event.key==='Enter')submitPin()">
+  <button class="btn btn-primary" style="width:190px;padding:13px;font-size:16px" onclick="submitPin()">Unlock</button>
+  <div id="pin-error"></div>
+</div>
+
+<div class="header">
+  <div class="logo">PUNCH<span> HOURS</span></div>
+  <div class="header-sub">Employee Time &amp; Pay Tracker</div>
+  <div class="header-spacer"></div>
+  <button class="btn btn-secondary btn-sm" onclick="exportAllCSV()">⬇ Export CSV</button>
+  <button class="btn btn-secondary btn-sm" onclick="forcePull()" title="Pull latest from cloud">🔄</button>
+  <button class="btn btn-sm" style="background:transparent;border:1px solid var(--danger);color:var(--danger)" onclick="resetAllData()">🗑 Reset All Data</button>
+  <span id="sync-indicator"></span>
+</div>
+
+<div class="nav">
+  <div class="nav-tab active" onclick="switchTab('dashboard')">📊 Dashboard</div>
+  <div class="nav-tab" onclick="switchTab('employees')">👥 Employees</div>
+  <div class="nav-tab" onclick="switchTab('timelog')">⏱ Time Log</div>
+  <div class="nav-tab" onclick="switchTab('reports')">📋 Reports</div>
+  <div class="nav-tab" onclick="switchTab('timesheet')">📅 Weekly Sheet</div>
+</div>
+
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div class="tab-content active" id="tab-dashboard">
+    <div class="grid grid-4 mb16" id="dash-stats"></div>
+    <div class="grid grid-2">
+      <div>
+        <div class="section-header">
+          <div class="section-title">Recent Entries</div>
+          <button class="btn btn-primary btn-sm" onclick="openAddEntry()">+ Add Entry</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Hours</th><th>Pay</th></tr></thead>
+            <tbody id="dash-recent-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="section-header">
+          <div class="section-title">This Week</div>
+        </div>
+        <div id="dash-week-summary"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPLOYEES -->
+  <div class="tab-content" id="tab-employees">
+    <div class="section-header">
+      <div class="section-title">Employees</div>
+      <button class="btn btn-primary" onclick="openAddEmployee()">+ Add Employee</button>
+    </div>
+    <div class="grid grid-3" id="employees-grid"></div>
+  </div>
+
+  <!-- TIME LOG -->
+  <div class="tab-content" id="tab-timelog">
+    <div class="section-header">
+      <div class="section-title">Time Log</div>
+      <button class="btn btn-primary" onclick="openAddEntry()">+ Add Entry</button>
+    </div>
+    <div class="filter-bar">
+      <select id="filter-emp" onchange="renderTimeLog()">
+        <option value="">All Employees</option>
+      </select>
+      <select id="filter-type" onchange="renderTimeLog()">
+        <option value="">All Types</option>
+        <option value="regular">Regular</option>
+        <option value="overtime">Overtime</option>
+        <option value="sick">Sick</option>
+        <option value="vacation">Vacation</option>
+        <option value="holiday">Holiday</option>
+        <option value="unpaid">Unpaid / Out</option>
+        <option value="other">Other</option>
+      </select>
+      <input type="date" id="filter-from" onchange="renderTimeLog()">
+      <input type="date" id="filter-to" onchange="renderTimeLog()">
+      <button class="btn btn-secondary btn-sm" onclick="clearFilters()">Clear</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Employee</th>
+            <th>Type</th>
+            <th>Hours</th>
+            <th>Rate</th>
+            <th>Pay</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="timelog-body"></tbody>
+      </table>
+    </div>
+    <div id="timelog-totals"></div>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="tab-content" id="tab-reports">
+    <div class="section-header">
+      <div class="section-title">Pay Reports</div>
+      <button class="btn btn-secondary btn-sm" onclick="exportAllCSV()">⬇ Export CSV</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+      <span style="font-size:13px;color:var(--muted)">Period:</span>
+      <button class="period-btn active" onclick="setPeriod('weekly',this)">Weekly</button>
+      <button class="period-btn" onclick="setPeriod('biweekly',this)">Bi-Weekly</button>
+      <button class="period-btn" onclick="setPeriod('monthly',this)">Monthly</button>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="report-emp" onchange="renderReport()" style="width:160px">
+          <option value="">All Employees</option>
+        </select>
+        <input type="date" id="report-from" onchange="renderReport()" style="width:140px">
+        <span style="color:var(--muted);font-size:13px">to</span>
+        <input type="date" id="report-to" onchange="renderReport()" style="width:140px">
+      </div>
+    </div>
+    <div id="report-content"></div>
+  </div>
+
+  <!-- WEEKLY TIMESHEET -->
+  <div class="tab-content" id="tab-timesheet">
+    <div class="section-header">
+      <div class="section-title">Weekly Timesheet</div>
+    </div>
+    <div id="timesheet-content"></div>
+  </div>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: ADD/EDIT EMPLOYEE -->
+<!-- ============================================================ -->
+<div class="modal-overlay" id="modal-employee">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-employee-title">Add Employee</div>
+      <button class="modal-close" onclick="closeModal('modal-employee')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="emp-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" id="emp-fname" placeholder="Jane">
+        </div>
+        <div class="form-group">
+          <label>Last Name *</label>
+          <input type="text" id="emp-lname" placeholder="Smith">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Job Title</label>
+          <input type="text" id="emp-title" placeholder="Designer">
+        </div>
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" id="emp-start">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Pay Type</label>
+          <select id="emp-pay-type" onchange="togglePayTypeLabel()">
+            <option value="hourly">Hourly</option>
+            <option value="weekly">Weekly Salary</option>
+            <option value="salary">Salary (Annual)</option>
+          </select>
+        </div>
+        <div class="form-group" id="emp-rate-group">
+          <label id="emp-rate-label">Starting Hourly Rate ($)</label>
+          <input type="number" id="emp-rate" placeholder="20.00" step="0.01" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Sick Days / Year</label>
+          <input type="number" id="emp-sick" placeholder="5" min="0">
+        </div>
+        <div class="form-group">
+          <label>Vacation Days / Year</label>
+          <input type="number" id="emp-vacation" placeholder="10" min="0">
+        </div>
+      </div>
+      <div id="emp-edit-rate-note" style="display:none">
+        <div class="info-note">💡 To change this employee's pay rate, use <strong>Add Raise</strong> from their profile — keeps full history.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-employee')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEmployee()">Save Employee</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: EMPLOYEE DETAIL -->
+<!-- ============================================================ -->
+<div class="modal-overlay" id="modal-emp-detail">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="emp-avatar" id="detail-avatar" style="width:40px;height:40px;font-size:15px"></div>
+        <div>
+          <div class="modal-title" id="modal-detail-name"></div>
+          <div id="modal-detail-sub" style="font-size:12px;color:var(--muted)"></div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-emp-detail')">×</button>
+    </div>
+    <div class="modal-body" id="modal-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="detail-toggle-btn" onclick="toggleEmployeeActive()"></button>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary" onclick="closeModal('modal-emp-detail')">Close</button>
+      <button class="btn btn-secondary" onclick="editCurrentEmployee()">✏ Edit Info</button>
+      <button class="btn btn-primary" onclick="openAddRaiseForCurrent()">💰 Add Raise</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: ADD RAISE -->
+<!-- ============================================================ -->
+<div class="modal-overlay" id="modal-raise">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Pay Raise</div>
+      <button class="modal-close" onclick="closeRaiseModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="raise-emp-id">
+      <div class="info-note">
+        💡 Raises support any effective date — past or future. Pay calculations for past entries automatically use the rate that was in effect on that date.
+      </div>
+      <div class="form-group">
+        <label>Employee</label>
+        <input type="text" id="raise-emp-name" readonly style="opacity:0.6;cursor:not-allowed">
+      </div>
+      <div class="form-group">
+        <label>Current Rate</label>
+        <input type="text" id="raise-current-rate" readonly style="opacity:0.6;cursor:not-allowed">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>New Rate ($) *</label>
+          <input type="number" id="raise-rate" placeholder="22.50" step="0.01" min="0" oninput="updateRaisePreview()">
+        </div>
+        <div class="form-group">
+          <label>Effective Date *</label>
+          <input type="date" id="raise-date" oninput="updateRaisePreview()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Note (optional)</label>
+        <input type="text" id="raise-note" placeholder="Annual review, promotion, merit raise...">
+      </div>
+      <div id="raise-preview" style="font-size:13px;margin-top:4px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeRaiseModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRaise()">Add Raise</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: ADD/EDIT TIME ENTRY -->
+<!-- ============================================================ -->
+<div class="modal-overlay" id="modal-entry">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-entry-title">Add Time Entry</div>
+      <button class="modal-close" onclick="closeModal('modal-entry')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="entry-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Employee *</label>
+          <select id="entry-emp" onchange="updateEntryPreview()"></select>
+        </div>
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" id="entry-date" onchange="updateEntryPreview()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Entry Type *</label>
+          <select id="entry-type" onchange="updateEntryPreview()">
+            <option value="regular">Regular</option>
+            <option value="overtime">Overtime (1.5×)</option>
+            <option value="sick">Sick Day</option>
+            <option value="vacation">Vacation</option>
+            <option value="holiday">Holiday</option>
+            <option value="unpaid">Unpaid / Time Out</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Hours *</label>
+          <input type="number" id="entry-hours" placeholder="8" step="0.25" min="0" max="24" oninput="updateEntryPreview()">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Rate Override ($) <span style="font-weight:400;font-size:11px;color:var(--muted)">&mdash; leave blank to use rate on that date</span></label>
+        <input type="number" id="entry-rate-override" placeholder="Auto-detected" step="0.01" min="0" oninput="updateEntryPreview()">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="entry-notes" placeholder="Optional notes..."></textarea>
+      </div>
+      <div id="entry-preview" style="font-size:13px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius);min-height:38px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="entry-delete-btn" onclick="deleteCurrentEntry()" style="display:none">🗑 Delete</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary" onclick="closeModal('modal-entry')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEntry()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA — GitHub cloud backend
+// ============================================================
+const GH_TOKEN = [103,104,112,95,105,54,54,54,88,86,100,110,110,83,52,87,50,112,70,122,122,118,55,53,75,102,111,112,48,103,78,121,81,103,50,87,69,52,83,103].map(c=>String.fromCharCode(c)).join('');
+const GH_API   = 'https://api.github.com/repos/punchclubinc/punch-hours-data/contents/db.json';
+const APP_PIN  = '7347'; // Change this to update your PIN
+
+const DB = { employees: [], timeEntries: [] };
+let currentDetailEmpId = null;
+let currentPeriod = 'weekly';
+let _dbSha = null;
+let _syncTimer = null;
+
+// ----- base64 helpers (Unicode-safe) -----
+function _toB64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+function _fromB64(b64) {
+  const bin = atob(b64.replace(/\n/g,''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+// ----- sync status -----
+function setSyncStatus(s) {
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  const txt = {idle:'',pending:'⏳',syncing:'☁️ Saving…',ok:'✓ Synced',error:'⚠️ Sync fail'};
+  const col = {idle:'',pending:'var(--muted)',syncing:'var(--info)',ok:'var(--success)',error:'var(--danger)'};
+  el.textContent = txt[s]||s; el.style.color = col[s]||'';
+}
+
+function saveDB() {
+  // Immediate local cache
+  try { localStorage.setItem('punchHours_v2', JSON.stringify(DB)); } catch(e) {}
+  // Debounced cloud sync
+  clearTimeout(_syncTimer);
+  setSyncStatus('pending');
+  _syncTimer = setTimeout(_syncToGH, 2500);
+}
+
+async function _syncToGH(retry) {
+  setSyncStatus('syncing');
+  try {
+    const payload = { message: 'sync '+new Date().toISOString(), content: _toB64(JSON.stringify(DB,null,2)) };
+    if (_dbSha) payload.sha = _dbSha;
+    const res = await fetch(GH_API, {
+      method: 'PUT',
+      headers: { 'Authorization':'token '+GH_TOKEN, 'Content-Type':'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const j = await res.json(); _dbSha = j.content.sha;
+      setSyncStatus('ok'); setTimeout(()=>setSyncStatus('idle'), 3000);
+    } else if (res.status===409 && !retry) {
+      // SHA conflict — re-fetch and retry
+      const g = await fetch(GH_API, { headers:{'Authorization':'token '+GH_TOKEN} });
+      if (g.ok) { const gj=await g.json(); _dbSha=gj.sha; }
+      setTimeout(()=>_syncToGH(true), 600);
+    } else { setSyncStatus('error'); }
+  } catch(e) { setSyncStatus('error'); console.error(e); }
+}
+
+async function loadDB() {
+  setSyncStatus('syncing');
+  try {
+    const res = await fetch(GH_API+'?t='+Date.now(), { headers:{'Authorization':'token '+GH_TOKEN} });
+    if (res.ok) {
+      const j = await res.json();
+      _dbSha = j.sha;
+      const data = JSON.parse(_fromB64(j.content));
+      DB.employees   = data.employees   || [];
+      DB.timeEntries = data.timeEntries || [];
+      try { localStorage.setItem('punchHours_v2', JSON.stringify(DB)); } catch(e) {}
+      setSyncStatus('ok'); setTimeout(()=>setSyncStatus('idle'), 2000);
+      return;
+    }
+  } catch(e) { console.error('GH load error', e); }
+  // Fallback: localStorage
+  setSyncStatus('error');
+  try {
+    const saved = localStorage.getItem('punchHours_v2');
+    if (saved) { const d=JSON.parse(saved); DB.employees=d.employees||[]; DB.timeEntries=d.timeEntries||[]; }
+  } catch(e) {}
+}
+
+async function forcePull() {
+  clearTimeout(_syncTimer);
+  await loadDB();
+  populateEmpDropdowns(); renderDashboard();
+  alert('Refreshed from cloud!');
+}
+
+// ----- PIN -----
+function checkPin() { return localStorage.getItem('ph_auth') === APP_PIN; }
+
+function submitPin() {
+  const v = document.getElementById('pin-input').value;
+  if (v === APP_PIN) {
+    localStorage.setItem('ph_auth', APP_PIN);
+    document.getElementById('pin-overlay').style.display = 'none';
+    startApp();
+  } else {
+    const err = document.getElementById('pin-error');
+    err.textContent = '✗ Wrong PIN — try again';
+    document.getElementById('pin-input').value = '';
+    document.getElementById('pin-input').focus();
+    setTimeout(()=>err.textContent='', 2500);
+  }
+}
+
+function uid() {
+  return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,7);
+}
+
+// ============================================================
+// PAY CALCULATION
+// ============================================================
+function getRateOnDate(emp, dateStr) {
+  const target = new Date(dateStr + 'T12:00:00');
+  const valid = emp.rateHistory
+    .filter(r => new Date(r.effectiveDate + 'T00:00:00') <= target)
+    .sort((a, b) => new Date(b.effectiveDate) - new Date(a.effectiveDate));
+  if (valid.length > 0) return valid[0].rate;
+  // fallback: earliest rate
+  const earliest = [...emp.rateHistory].sort((a,b) => new Date(a.effectiveDate)-new Date(b.effectiveDate));
+  return earliest[0]?.rate || 0;
+}
+
+function getCurrentRate(emp) {
+  const sorted = [...emp.rateHistory].sort((a,b) => new Date(b.effectiveDate)-new Date(a.effectiveDate));
+  return sorted[0]?.rate || 0;
+}
+
+function calcPay(entry, emp) {
+  const storedRate = entry.rateOverride || getRateOnDate(emp, entry.date);
+  const hours = parseFloat(entry.hours) || 0;
+  // Weekly salary: convert to effective hourly (weekly / 40)
+  const rate = (emp.payType === 'weekly' && !entry.rateOverride) ? +(storedRate / 40).toFixed(4) : storedRate;
+  if (entry.type === 'unpaid') return { rate, pay: 0 };
+  if (entry.type === 'overtime') return { rate, pay: +(hours * rate * 1.5).toFixed(2) };
+  return { rate, pay: +(hours * rate).toFixed(2) };
+}
+
+function getEmp(id) { return DB.employees.find(e => e.id === id); }
+
+// ============================================================
+// UTILS
+// ============================================================
+function fmt$(n) {
+  return '$' + (+(n) || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const parts = d.split('-');
+  return `${parts[1]}/${parts[2]}/${parts[0]}`;
+}
+
+function initials(name) {
+  return name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0,2).toUpperCase();
+}
+
+function badge(type) {
+  const labels = { regular:'Regular', overtime:'Overtime', sick:'Sick', vacation:'Vacation', holiday:'Holiday', unpaid:'Unpaid', other:'Other' };
+  return `<span class="badge badge-${type}">${labels[type]||type}</span>`;
+}
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function weekStart(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0,10);
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function switchTab(tab) {
+  const tabs = ['dashboard','employees','timelog','reports','timesheet'];
+  document.querySelectorAll('.nav-tab').forEach((el, i) => {
+    el.classList.toggle('active', tabs[i] === tab);
+  });
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  if (tab === 'dashboard') renderDashboard();
+  if (tab === 'employees') renderEmployees();
+  if (tab === 'timelog') { populateEmpDropdowns(); renderTimeLog(); }
+  if (tab === 'reports') { populateEmpDropdowns(); renderReport(); }
+  if (tab === 'timesheet') { renderTimesheet(); }
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const today = todayStr();
+  const ws = weekStart(today);
+  const we = today;
+
+  const weekEntries = DB.timeEntries.filter(e => e.date >= ws && e.date <= we);
+  let weekHours = 0, weekPay = 0, weekSick = 0, weekOT = 0;
+  weekEntries.forEach(e => {
+    const emp = getEmp(e.employeeId);
+    if (!emp) return;
+    const { pay } = calcPay(e, emp);
+    const h = parseFloat(e.hours) || 0;
+    weekHours += h;
+    weekPay += pay;
+    if (e.type === 'sick') weekSick += h;
+    if (e.type === 'overtime') weekOT += h;
+  });
+
+  const activeEmps = DB.employees.filter(e => e.active !== false).length;
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="card">
+      <div class="card-title">Active Employees</div>
+      <div class="card-value">${activeEmps}</div>
+      <div class="card-sub">${DB.employees.length} total on roster</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Hours This Week</div>
+      <div class="card-value">${weekHours.toFixed(1)}</div>
+      <div class="card-sub">OT: ${weekOT.toFixed(1)} hrs</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Payroll This Week</div>
+      <div class="card-value">${fmt$(weekPay)}</div>
+      <div class="card-sub">Gross estimate</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sick Hours This Week</div>
+      <div class="card-value" style="color:var(--danger)">${weekSick.toFixed(1)}</div>
+      <div class="card-sub">${(weekSick/8).toFixed(1)} days</div>
+    </div>
+  `;
+
+  // Recent 10 entries
+  const recent = [...DB.timeEntries].sort((a,b) => b.date.localeCompare(a.date)).slice(0,10);
+  const tbody = document.getElementById('dash-recent-body');
+  if (recent.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:30px">No entries yet — add one to get started</td></tr>';
+  } else {
+    tbody.innerHTML = recent.map(e => {
+      const emp = getEmp(e.employeeId);
+      if (!emp) return '';
+      const { pay } = calcPay(e, emp);
+      return `<tr onclick="editEntry('${e.id}')" style="cursor:pointer">
+        <td>${emp.name}</td>
+        <td>${fmtDate(e.date)}</td>
+        <td>${badge(e.type)}</td>
+        <td>${e.hours}h</td>
+        <td>${e.type==='unpaid'?'—':fmt$(pay)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Week by employee
+  const byEmp = {};
+  weekEntries.forEach(e => {
+    const emp = getEmp(e.employeeId);
+    if (!emp) return;
+    if (!byEmp[e.employeeId]) byEmp[e.employeeId] = { name: emp.name, hours: 0, pay: 0, sick: 0, vacation: 0 };
+    const { pay } = calcPay(e, emp);
+    const h = parseFloat(e.hours) || 0;
+    byEmp[e.employeeId].hours += h;
+    byEmp[e.employeeId].pay += pay;
+    if (e.type === 'sick') byEmp[e.employeeId].sick += h;
+    if (e.type === 'vacation') byEmp[e.employeeId].vacation += h;
+  });
+
+  const weekEl = document.getElementById('dash-week-summary');
+  const rows = Object.values(byEmp);
+  if (rows.length === 0) {
+    weekEl.innerHTML = `<div class="card" style="text-align:center;color:var(--muted);padding:32px">No hours logged this week</div>`;
+  } else {
+    weekEl.innerHTML = `<div class="card">
+      ${rows.map(r => `
+        <div class="stat-row">
+          <div class="stat-row-label">${r.name}</div>
+          <div style="display:flex;gap:16px;align-items:center">
+            <span style="color:var(--muted);font-size:12px">${r.hours.toFixed(1)}h</span>
+            <span class="stat-row-value">${fmt$(r.pay)}</span>
+          </div>
+        </div>`).join('')}
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:13px">
+        <strong>Total</strong>
+        <strong>${fmt$(rows.reduce((s,r)=>s+r.pay,0))}</strong>
+      </div>
+    </div>`;
+  }
+}
+
+// ============================================================
+// EMPLOYEES
+// ============================================================
+function renderEmployees() {
+  const grid = document.getElementById('employees-grid');
+  if (DB.employees.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">👥</div>
+      <h3>No employees yet</h3>
+      <p>Add your first employee to get started</p>
+      <div class="mt16"><button class="btn btn-primary" onclick="openAddEmployee()">+ Add Employee</button></div>
+    </div>`;
+    return;
+  }
+
+  const year = new Date().getFullYear();
+  grid.innerHTML = DB.employees.map(emp => {
+    const rate = getCurrentRate(emp);
+    const isActive = emp.active !== false;
+    const ytd = DB.timeEntries.filter(e => e.employeeId === emp.id && e.date.startsWith(year));
+    let ytdH = 0, ytdSick = 0, ytdVac = 0, ytdPay = 0;
+    ytd.forEach(e => {
+      const h = parseFloat(e.hours) || 0;
+      const { pay } = calcPay(e, emp);
+      ytdH += h;
+      ytdPay += pay;
+      if (e.type === 'sick') ytdSick += h;
+      if (e.type === 'vacation') ytdVac += h;
+    });
+
+    return `<div class="emp-card" onclick="openEmployeeDetail('${emp.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div class="emp-avatar">${initials(emp.name)}</div>
+        <span class="badge ${isActive?'badge-active':'badge-inactive'}">${isActive?'Active':'Inactive'}</span>
+      </div>
+      <div class="emp-name">${emp.name}</div>
+      <div class="emp-title">${emp.title||'Employee'}</div>
+      <div class="emp-rate">${emp.payType==='salary'||emp.payType==='weekly'?fmt$(rate):'$'+(+rate).toFixed(2)}
+        <span style="font-size:13px;font-weight:400;color:var(--muted)">${emp.payType==='salary'?'/yr':emp.payType==='weekly'?'/wk':'/hr'}</span>
+      </div>
+      <div style="height:1px;background:var(--border);margin:12px 0"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;font-size:12px">
+        <div><div style="font-weight:800;font-size:16px">${ytdH.toFixed(0)}</div><div style="color:var(--muted);font-size:10px">YTD HRS</div></div>
+        <div><div style="font-weight:800;font-size:16px;color:var(--danger)">${(ytdSick/8).toFixed(1)}</div><div style="color:var(--muted);font-size:10px">SICK DAYS</div></div>
+        <div><div style="font-weight:800;font-size:16px;color:var(--info)">${(ytdVac/8).toFixed(1)}</div><div style="color:var(--muted);font-size:10px">VAC DAYS</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAddEmployee() {
+  document.getElementById('modal-employee-title').textContent = 'Add Employee';
+  document.getElementById('emp-id').value = '';
+  document.getElementById('emp-fname').value = '';
+  document.getElementById('emp-lname').value = '';
+  document.getElementById('emp-title').value = '';
+  document.getElementById('emp-start').value = todayStr();
+  document.getElementById('emp-pay-type').value = 'hourly';
+  document.getElementById('emp-rate').value = '';
+  document.getElementById('emp-sick').value = '5';
+  document.getElementById('emp-vacation').value = '10';
+  document.getElementById('emp-edit-rate-note').style.display = 'none';
+  document.getElementById('emp-rate-group').style.display = 'block';
+  togglePayTypeLabel();
+  openModal('modal-employee');
+}
+
+function togglePayTypeLabel() {
+  const type = document.getElementById('emp-pay-type').value;
+  const labels = { hourly: 'Starting Hourly Rate ($)', weekly: 'Weekly Salary ($)', salary: 'Annual Salary ($)' };
+  document.getElementById('emp-rate-label').textContent = labels[type] || 'Rate ($)';
+}
+
+function saveEmployee() {
+  const id = document.getElementById('emp-id').value;
+  const fname = document.getElementById('emp-fname').value.trim();
+  const lname = document.getElementById('emp-lname').value.trim();
+  const title = document.getElementById('emp-title').value.trim();
+  const start = document.getElementById('emp-start').value;
+  const payType = document.getElementById('emp-pay-type').value;
+  const sick = parseInt(document.getElementById('emp-sick').value) || 0;
+  const vacation = parseInt(document.getElementById('emp-vacation').value) || 0;
+
+  if (!fname || !lname) { alert('Name is required.'); return; }
+
+  const name = `${fname} ${lname}`;
+
+  if (id) {
+    const emp = getEmp(id);
+    emp.name = name;
+    emp.title = title;
+    emp.startDate = start;
+    emp.payType = payType;
+    emp.annualSickDays = sick;
+    emp.annualVacationDays = vacation;
+  } else {
+    const rate = parseFloat(document.getElementById('emp-rate').value);
+    if (isNaN(rate) || rate < 0) { alert('Please enter a valid rate.'); return; }
+    DB.employees.push({
+      id: uid(), name, title,
+      startDate: start || todayStr(),
+      payType, active: true,
+      annualSickDays: sick,
+      annualVacationDays: vacation,
+      rateHistory: [{ rate, effectiveDate: start || todayStr(), note: 'Starting rate' }]
+    });
+  }
+
+  saveDB();
+  closeModal('modal-employee');
+  renderEmployees();
+  if (id && currentDetailEmpId === id) openEmployeeDetail(id);
+}
+
+function openEmployeeDetail(empId) {
+  currentDetailEmpId = empId;
+  const emp = getEmp(empId);
+  if (!emp) return;
+
+  document.getElementById('detail-avatar').textContent = initials(emp.name);
+  document.getElementById('modal-detail-name').textContent = emp.name;
+  document.getElementById('modal-detail-sub').textContent = `${emp.title||'Employee'} · Started ${fmtDate(emp.startDate)}`;
+
+  const isActive = emp.active !== false;
+  const btn = document.getElementById('detail-toggle-btn');
+  btn.textContent = isActive ? 'Deactivate' : 'Reactivate';
+  btn.className = isActive ? 'btn btn-danger btn-sm' : 'btn btn-secondary btn-sm';
+
+  const year = new Date().getFullYear();
+  const ytd = DB.timeEntries.filter(e => e.employeeId === emp.id && e.date.startsWith(year));
+  let ytdH = 0, ytdPay = 0, ytdSick = 0, ytdVac = 0, ytdOT = 0;
+  ytd.forEach(e => {
+    const { pay } = calcPay(e, emp);
+    const h = parseFloat(e.hours) || 0;
+    ytdH += h; ytdPay += pay;
+    if (e.type === 'sick') ytdSick += h;
+    if (e.type === 'vacation') ytdVac += h;
+    if (e.type === 'overtime') ytdOT += h;
+  });
+
+  const sickUsed = (ytdSick/8).toFixed(1);
+  const sickAlloc = emp.annualSickDays || 0;
+  const vacUsed = (ytdVac/8).toFixed(1);
+  const vacAlloc = emp.annualVacationDays || 0;
+  const sickPct = sickAlloc > 0 ? Math.min(100, (sickUsed/sickAlloc)*100) : 0;
+  const vacPct  = vacAlloc  > 0 ? Math.min(100, (vacUsed/vacAlloc)*100)   : 0;
+
+  const ratesSorted = [...emp.rateHistory].sort((a,b) => new Date(b.effectiveDate)-new Date(a.effectiveDate));
+  const currentRate = getCurrentRate(emp);
+
+  // Recent entries
+  const recentEntries = DB.timeEntries
+    .filter(e => e.employeeId === emp.id)
+    .sort((a,b) => b.date.localeCompare(a.date))
+    .slice(0,20);
+
+  document.getElementById('modal-detail-body').innerHTML = `
+    <div class="grid grid-2">
+      <div>
+        <div class="card-title mb8">YTD ${year} Summary</div>
+        <div class="stat-row"><span class="stat-row-label">Total Hours</span><span class="stat-row-value">${ytdH.toFixed(1)}</span></div>
+        <div class="stat-row"><span class="stat-row-label">Overtime Hours</span><span class="stat-row-value" style="color:var(--warning)">${ytdOT.toFixed(1)}</span></div>
+        <div class="stat-row"><span class="stat-row-label">Gross Pay YTD</span><span class="stat-row-value" style="color:var(--primary)">${fmt$(ytdPay)}</span></div>
+        <div class="stat-row"><span class="stat-row-label">Current Rate</span><span class="stat-row-value">${emp.payType==='salary'?fmt$(currentRate)+'/yr':emp.payType==='weekly'?fmt$(currentRate)+'/wk':'$'+(+currentRate).toFixed(2)+'/hr'}</span></div>
+
+        <div class="mt16">
+          <div class="card-title mb8">Time Off Allowances</div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+              <span>🤒 Sick Days</span>
+              <span style="${+sickUsed > sickAlloc ? 'color:var(--danger);font-weight:700' : ''}">${sickUsed} / ${sickAlloc} days</span>
+            </div>
+            <div class="progress"><div class="progress-bar" style="background:var(--danger);width:${sickPct}%"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+              <span>🏖 Vacation Days</span>
+              <span style="${+vacUsed > vacAlloc ? 'color:var(--danger);font-weight:700' : ''}">${vacUsed} / ${vacAlloc} days</span>
+            </div>
+            <div class="progress"><div class="progress-bar" style="background:var(--info);width:${vacPct}%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card-title mb8">Pay Rate History</div>
+        ${ratesSorted.map((r, i) => {
+          const isLatest = i === 0;
+          const prevRate = ratesSorted[i+1]?.rate;
+          const diff = prevRate ? ((r.rate - prevRate) / prevRate * 100).toFixed(1) : null;
+          return `<div class="rate-item">
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+                <span class="rate-amount">${emp.payType==='salary'||emp.payType==='weekly'?fmt$(r.rate):'$'+(+r.rate).toFixed(2)}${emp.payType==='weekly'?' <span style="font-size:12px;font-weight:400">/wk</span>':''}</span>
+                ${isLatest ? '<span class="current-tag">Current</span>' : ''}
+                ${diff !== null && diff > 0 ? `<span class="raise-arrow">▲ +${diff}%</span>` : ''}
+                ${diff !== null && diff < 0 ? `<span style="color:var(--danger);font-size:12px;font-weight:700">▼ ${diff}%</span>` : ''}
+              </div>
+              <div class="rate-date">Effective ${fmtDate(r.effectiveDate)}</div>
+              ${r.note ? `<div class="rate-note">${r.note}</div>` : ''}
+            </div>
+            ${!isLatest ? `<button class="btn-icon" onclick="deleteRate('${emp.id}','${r.effectiveDate}',${r.rate})" title="Remove">🗑</button>` : ''}
+          </div>`;
+        }).join('') || '<div style="color:var(--muted);font-size:13px">No rate history</div>'}
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="card-title mb8">Time Entry History (last 20)</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Type</th><th>Hours</th><th>Rate</th><th>Pay</th><th>Notes</th><th></th></tr></thead>
+        <tbody>
+          ${recentEntries.length === 0
+            ? '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">No entries yet</td></tr>'
+            : recentEntries.map(e => {
+                const { rate, pay } = calcPay(e, emp);
+                return `<tr>
+                  <td>${fmtDate(e.date)}</td>
+                  <td>${badge(e.type)}</td>
+                  <td>${e.hours}h</td>
+                  <td>${e.type==='unpaid'?'—':'$'+(+rate).toFixed(2)}</td>
+                  <td>${e.type==='unpaid'?'—':fmt$(pay)}</td>
+                  <td style="color:var(--muted);font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.notes||''}">${e.notes||''}</td>
+                  <td><button class="btn-icon" onclick="editEntry('${e.id}');closeModal('modal-emp-detail')" title="Edit">✏</button></td>
+                </tr>`;
+              }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  openModal('modal-emp-detail');
+}
+
+function editCurrentEmployee() {
+  const emp = getEmp(currentDetailEmpId);
+  if (!emp) return;
+  closeModal('modal-emp-detail');
+  document.getElementById('modal-employee-title').textContent = 'Edit Employee';
+  document.getElementById('emp-id').value = emp.id;
+  const parts = emp.name.split(' ');
+  document.getElementById('emp-fname').value = parts[0] || '';
+  document.getElementById('emp-lname').value = parts.slice(1).join(' ') || '';
+  document.getElementById('emp-title').value = emp.title || '';
+  document.getElementById('emp-start').value = emp.startDate || '';
+  document.getElementById('emp-pay-type').value = emp.payType || 'hourly';
+  document.getElementById('emp-sick').value = emp.annualSickDays || '';
+  document.getElementById('emp-vacation').value = emp.annualVacationDays || '';
+  document.getElementById('emp-rate-group').style.display = 'none';
+  document.getElementById('emp-edit-rate-note').style.display = 'block';
+  togglePayTypeLabel();
+  openModal('modal-employee');
+}
+
+function toggleEmployeeActive() {
+  const emp = getEmp(currentDetailEmpId);
+  if (!emp) return;
+  emp.active = emp.active === false ? true : false;
+  saveDB();
+  openEmployeeDetail(currentDetailEmpId);
+  renderEmployees();
+}
+
+function deleteRate(empId, effectiveDate, rate) {
+  const emp = getEmp(empId);
+  if (!emp) return;
+  if (emp.rateHistory.length <= 1) { alert("Can't remove the only rate. Add a new rate first."); return; }
+  if (!confirm(`Remove the $${rate}/hr rate effective ${fmtDate(effectiveDate)}?`)) return;
+  emp.rateHistory = emp.rateHistory.filter(r => !(r.effectiveDate === effectiveDate && r.rate === rate));
+  saveDB();
+  openEmployeeDetail(empId);
+}
+
+// ============================================================
+// RAISES
+// ============================================================
+function openAddRaiseForCurrent() {
+  openAddRaise(currentDetailEmpId);
+}
+
+function openAddRaise(empId) {
+  const emp = getEmp(empId);
+  if (!emp) return;
+  document.getElementById('raise-emp-id').value = empId;
+  document.getElementById('raise-emp-name').value = emp.name;
+  const cur = getCurrentRate(emp);
+  document.getElementById('raise-current-rate').value = emp.payType === 'salary' ? `${fmt$(cur)}/yr` : emp.payType === 'weekly' ? `${fmt$(cur)}/wk` : `$${(+cur).toFixed(2)}/hr`;
+  document.getElementById('raise-rate').value = '';
+  document.getElementById('raise-date').value = todayStr();
+  document.getElementById('raise-note').value = '';
+  document.getElementById('raise-preview').textContent = '';
+  closeModal('modal-emp-detail');
+  openModal('modal-raise');
+}
+
+function updateRaisePreview() {
+  const empId = document.getElementById('raise-emp-id').value;
+  const emp = getEmp(empId);
+  if (!emp) return;
+  const newRate = parseFloat(document.getElementById('raise-rate').value);
+  const curRate = getCurrentRate(emp);
+  if (!isNaN(newRate) && newRate > 0 && curRate > 0) {
+    const diff = newRate - curRate;
+    const pct = ((diff / curRate) * 100).toFixed(1);
+    const color = diff >= 0 ? 'var(--success)' : 'var(--danger)';
+    const arrow = diff >= 0 ? '▲' : '▼';
+    document.getElementById('raise-preview').innerHTML =
+      `<span style="color:${color};font-weight:700">${arrow} ${diff >= 0 ? '+' : ''}${fmt$(diff)}/hr (${diff >= 0 ? '+' : ''}${pct}%)</span>`;
+  } else {
+    document.getElementById('raise-preview').textContent = '';
+  }
+}
+
+function closeRaiseModal() {
+  closeModal('modal-raise');
+  if (currentDetailEmpId) openEmployeeDetail(currentDetailEmpId);
+}
+
+function saveRaise() {
+  const empId = document.getElementById('raise-emp-id').value;
+  const rate = parseFloat(document.getElementById('raise-rate').value);
+  const date = document.getElementById('raise-date').value;
+  const note = document.getElementById('raise-note').value.trim();
+
+  if (!date) { alert('Please select an effective date.'); return; }
+  if (isNaN(rate) || rate <= 0) { alert('Please enter a valid rate.'); return; }
+
+  const emp = getEmp(empId);
+  emp.rateHistory.push({ rate, effectiveDate: date, note });
+  saveDB();
+  closeModal('modal-raise');
+  openEmployeeDetail(empId);
+  renderEmployees();
+}
+
+// ============================================================
+// EMPLOYEE DROPDOWNS
+// ============================================================
+function populateEmpDropdowns() {
+  const emps = DB.employees.filter(e => e.active !== false);
+  const opts = emps.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+  const allOpts = '<option value="">All Employees</option>' + opts;
+
+  const entryEl = document.getElementById('entry-emp');
+  if (entryEl) entryEl.innerHTML = opts;
+
+  const filterEl = document.getElementById('filter-emp');
+  if (filterEl) filterEl.innerHTML = allOpts;
+
+  const reportEl = document.getElementById('report-emp');
+  if (reportEl) reportEl.innerHTML = allOpts;
+}
+
+// ============================================================
+// TIME ENTRIES
+// ============================================================
+function openAddEntry(empId) {
+  populateEmpDropdowns();
+  document.getElementById('modal-entry-title').textContent = 'Add Time Entry';
+  document.getElementById('entry-id').value = '';
+  document.getElementById('entry-delete-btn').style.display = 'none';
+  document.getElementById('entry-emp').value = empId || DB.employees.find(e=>e.active!==false)?.id || '';
+  document.getElementById('entry-date').value = todayStr();
+  document.getElementById('entry-type').value = 'regular';
+  document.getElementById('entry-hours').value = '8';
+  document.getElementById('entry-rate-override').value = '';
+  document.getElementById('entry-notes').value = '';
+  updateEntryPreview();
+  openModal('modal-entry');
+}
+
+function editEntry(entryId) {
+  const entry = DB.timeEntries.find(e => e.id === entryId);
+  if (!entry) return;
+  populateEmpDropdowns();
+  document.getElementById('modal-entry-title').textContent = 'Edit Time Entry';
+  document.getElementById('entry-id').value = entry.id;
+  document.getElementById('entry-delete-btn').style.display = 'block';
+  document.getElementById('entry-emp').value = entry.employeeId;
+  document.getElementById('entry-date').value = entry.date;
+  document.getElementById('entry-type').value = entry.type;
+  document.getElementById('entry-hours').value = entry.hours;
+  document.getElementById('entry-rate-override').value = entry.rateOverride || '';
+  document.getElementById('entry-notes').value = entry.notes || '';
+  updateEntryPreview();
+  openModal('modal-entry');
+}
+
+function deleteCurrentEntry() {
+  const id = document.getElementById('entry-id').value;
+  if (!id) return;
+  if (!confirm('Delete this time entry?')) return;
+  DB.timeEntries = DB.timeEntries.filter(e => e.id !== id);
+  saveDB();
+  closeModal('modal-entry');
+  renderTimeLog();
+  renderDashboard();
+}
+
+function updateEntryPreview() {
+  const empId = document.getElementById('entry-emp')?.value;
+  const date = document.getElementById('entry-date')?.value;
+  const type = document.getElementById('entry-type')?.value;
+  const hours = parseFloat(document.getElementById('entry-hours')?.value) || 0;
+  const override = parseFloat(document.getElementById('entry-rate-override')?.value);
+  const preview = document.getElementById('entry-preview');
+
+  const emp = getEmp(empId);
+  if (!emp || !date || !hours) {
+    preview.textContent = 'Fill in employee, date, and hours to preview.';
+    preview.style.color = 'var(--muted)';
+    return;
+  }
+
+  const entry = { type, hours, date, rateOverride: isNaN(override) || override <= 0 ? null : override };
+  const { rate, pay } = calcPay(entry, emp);
+
+  let msg = '';
+  if (type === 'unpaid') msg = `⛔ No pay — unpaid time out`;
+  else if (type === 'overtime') msg = `💰 ${hours}h × $${(+rate).toFixed(2)} × 1.5 = <strong>${fmt$(pay)}</strong> (overtime)`;
+  else msg = `💰 ${hours}h × $${(+rate).toFixed(2)} = <strong>${fmt$(pay)}</strong>`;
+
+  if (entry.rateOverride) msg += ` <span style="color:var(--warning);font-size:11px">(manual rate)</span>`;
+  else msg += ` <span style="color:var(--muted);font-size:11px">(rate on ${fmtDate(date)})</span>`;
+
+  preview.innerHTML = `<span style="color:var(--text)">${msg}</span>`;
+}
+
+function saveEntry() {
+  const id = document.getElementById('entry-id').value;
+  const empId = document.getElementById('entry-emp').value;
+  const date = document.getElementById('entry-date').value;
+  const type = document.getElementById('entry-type').value;
+  const hours = parseFloat(document.getElementById('entry-hours').value);
+  const override = parseFloat(document.getElementById('entry-rate-override').value);
+  const notes = document.getElementById('entry-notes').value.trim();
+
+  if (!empId) { alert('Please select an employee.'); return; }
+  if (!date) { alert('Please select a date.'); return; }
+  if (isNaN(hours) || hours <= 0) { alert('Please enter valid hours.'); return; }
+
+  const entry = {
+    id: id || uid(),
+    employeeId: empId,
+    date, type, hours,
+    rateOverride: isNaN(override) || override <= 0 ? null : override,
+    notes
+  };
+
+  if (id) {
+    const idx = DB.timeEntries.findIndex(e => e.id === id);
+    if (idx >= 0) DB.timeEntries[idx] = entry;
+  } else {
+    DB.timeEntries.push(entry);
+  }
+
+  saveDB();
+  closeModal('modal-entry');
+  renderTimeLog();
+  renderDashboard();
+}
+
+// ============================================================
+// TIME LOG
+// ============================================================
+function renderTimeLog() {
+  const empFilter = document.getElementById('filter-emp')?.value || '';
+  const typeFilter = document.getElementById('filter-type')?.value || '';
+  const fromFilter = document.getElementById('filter-from')?.value || '';
+  const toFilter = document.getElementById('filter-to')?.value || '';
+
+  let entries = [...DB.timeEntries];
+  if (empFilter) entries = entries.filter(e => e.employeeId === empFilter);
+  if (typeFilter) entries = entries.filter(e => e.type === typeFilter);
+  if (fromFilter) entries = entries.filter(e => e.date >= fromFilter);
+  if (toFilter) entries = entries.filter(e => e.date <= toFilter);
+
+  entries.sort((a,b) => b.date.localeCompare(a.date));
+
+  let totalH = 0, totalPay = 0, totalSick = 0, totalVac = 0, totalOT = 0;
+
+  const tbody = document.getElementById('timelog-body');
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:48px">No entries found</td></tr>';
+    document.getElementById('timelog-totals').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = entries.map(entry => {
+    const emp = getEmp(entry.employeeId);
+    if (!emp) return '';
+    const { rate, pay } = calcPay(entry, emp);
+    const h = parseFloat(entry.hours) || 0;
+    totalH += h;
+    if (entry.type !== 'unpaid') totalPay += pay;
+    if (entry.type === 'sick') totalSick += h;
+    if (entry.type === 'vacation') totalVac += h;
+    if (entry.type === 'overtime') totalOT += h;
+
+    return `<tr>
+      <td>${fmtDate(entry.date)}</td>
+      <td><span style="font-weight:600">${emp.name}</span></td>
+      <td>${badge(entry.type)}</td>
+      <td>${entry.hours}h</td>
+      <td>${entry.type==='unpaid'?'—':'$'+(+rate).toFixed(2)}</td>
+      <td style="font-weight:700">${entry.type==='unpaid'?'—':fmt$(pay)}</td>
+      <td style="color:var(--muted);font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${entry.notes||''}">${entry.notes||''}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn-icon" onclick="editEntry('${entry.id}')" title="Edit">✏</button>
+          <button class="btn-icon" onclick="quickDelete('${entry.id}')" title="Delete" style="color:var(--danger)">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('timelog-totals').innerHTML = `
+    <div class="totals-bar">
+      <div class="totals-item">
+        <span class="totals-label">Entries</span>
+        <span class="totals-value">${entries.length}</span>
+      </div>
+      <div class="totals-item">
+        <span class="totals-label">Total Hours</span>
+        <span class="totals-value">${totalH.toFixed(1)}</span>
+      </div>
+      <div class="totals-item">
+        <span class="totals-label">Overtime</span>
+        <span class="totals-value" style="color:var(--warning)">${totalOT.toFixed(1)}h</span>
+      </div>
+      <div class="totals-item">
+        <span class="totals-label">Sick</span>
+        <span class="totals-value" style="color:var(--danger)">${(totalSick/8).toFixed(1)} days</span>
+      </div>
+      <div class="totals-item">
+        <span class="totals-label">Vacation</span>
+        <span class="totals-value" style="color:var(--info)">${(totalVac/8).toFixed(1)} days</span>
+      </div>
+      <div class="totals-item" style="margin-left:auto">
+        <span class="totals-label">Gross Pay</span>
+        <span class="totals-value" style="color:var(--primary)">${fmt$(totalPay)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function quickDelete(entryId) {
+  if (!confirm('Delete this time entry?')) return;
+  DB.timeEntries = DB.timeEntries.filter(e => e.id !== entryId);
+  saveDB();
+  renderTimeLog();
+  renderDashboard();
+}
+
+function clearFilters() {
+  ['filter-emp','filter-type','filter-from','filter-to'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderTimeLog();
+}
+
+// ============================================================
+// REPORTS
+// ============================================================
+function setPeriod(p, btn) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderReport();
+}
+
+function getPeriodKey(dateStr) {
+  if (currentPeriod === 'weekly') return weekStart(dateStr);
+  if (currentPeriod === 'biweekly') {
+    const d = new Date(dateStr + 'T12:00:00');
+    const anchor = new Date('2026-01-05T12:00:00'); // first Monday of 2026
+    const diff = Math.floor((d - anchor) / (86400000 * 14));
+    const start = new Date(anchor);
+    start.setDate(anchor.getDate() + diff * 14);
+    return start.toISOString().slice(0,10);
+  }
+  // monthly
+  return dateStr.slice(0,7);
+}
+
+function periodLabel(key) {
+  if (currentPeriod === 'monthly') {
+    const [y, m] = key.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(m)-1]} ${y}`;
+  }
+  const days = currentPeriod === 'biweekly' ? 13 : 6;
+  const end = new Date(key + 'T12:00:00');
+  end.setDate(end.getDate() + days);
+  const label = currentPeriod === 'biweekly' ? 'Pay Period' : 'Week';
+  return `${label}: ${fmtDate(key)} – ${fmtDate(end.toISOString().slice(0,10))}`;
+}
+
+function renderReport() {
+  const empFilter = document.getElementById('report-emp')?.value || '';
+  let from = document.getElementById('report-from')?.value || '';
+  let to = document.getElementById('report-to')?.value || '';
+
+  if (!from) {
+    const d = new Date();
+    d.setDate(d.getDate() - (currentPeriod === 'monthly' ? 90 : currentPeriod === 'biweekly' ? 56 : 28));
+    from = d.toISOString().slice(0,10);
+  }
+  if (!to) to = todayStr();
+
+  let entries = DB.timeEntries.filter(e => e.date >= from && e.date <= to);
+  if (empFilter) entries = entries.filter(e => e.employeeId === empFilter);
+
+  if (entries.length === 0) {
+    document.getElementById('report-content').innerHTML = `<div class="empty-state"><div class="icon">📋</div><h3>No data for selected range</h3><p>Adjust the date range or add time entries</p></div>`;
+    return;
+  }
+
+  // Group by period
+  const periods = {};
+  entries.forEach(e => {
+    const key = getPeriodKey(e.date);
+    if (!periods[key]) periods[key] = [];
+    periods[key].push(e);
+  });
+
+  let html = '';
+  Object.keys(periods).sort().reverse().forEach(key => {
+    const pEntries = periods[key];
+    const byEmp = {};
+    pEntries.forEach(e => {
+      if (!byEmp[e.employeeId]) byEmp[e.employeeId] = [];
+      byEmp[e.employeeId].push(e);
+    });
+
+    let pHours = 0, pPay = 0;
+    const rows = Object.entries(byEmp).map(([empId, ees]) => {
+      const emp = getEmp(empId);
+      if (!emp) return '';
+      let eH = 0, eReg = 0, eOT = 0, eSick = 0, eVac = 0, ePay = 0;
+      ees.forEach(e => {
+        const { pay } = calcPay(e, emp);
+        const h = parseFloat(e.hours) || 0;
+        eH += h;
+        if (e.type === 'regular') eReg += h;
+        if (e.type === 'overtime') eOT += h;
+        if (e.type === 'sick') eSick += h;
+        if (e.type === 'vacation') eVac += h;
+        if (e.type !== 'unpaid') ePay += pay;
+      });
+      pHours += eH; pPay += ePay;
+      return `<tr>
+        <td style="font-weight:600">${emp.name}</td>
+        <td>${eReg.toFixed(1)}</td>
+        <td style="color:var(--warning)">${eOT.toFixed(1)}</td>
+        <td style="color:var(--danger)">${(eSick/8).toFixed(1)} d</td>
+        <td style="color:var(--info)">${(eVac/8).toFixed(1)} d</td>
+        <td style="font-weight:700">${eH.toFixed(1)}</td>
+        <td style="font-weight:800;color:var(--primary)">${fmt$(ePay)}</td>
+      </tr>`;
+    }).join('');
+
+    html += `<div class="card mb16">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-weight:700;font-size:15px">${periodLabel(key)}</div>
+        <div style="font-size:13px">
+          <span style="color:var(--muted)">${pHours.toFixed(1)} hrs</span>
+          &nbsp;&nbsp;
+          <span style="font-weight:800;color:var(--primary);font-size:15px">${fmt$(pPay)}</span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Employee</th><th>Regular</th><th>Overtime</th><th>Sick</th><th>Vacation</th><th>Total Hrs</th><th>Gross Pay</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('report-content').innerHTML = html;
+}
+
+// ============================================================
+// EXPORT CSV
+// ============================================================
+function exportAllCSV() {
+  const headers = ['Date','Employee','Type','Hours','Rate','Pay','Notes'];
+  const rows = [...DB.timeEntries]
+    .sort((a,b) => b.date.localeCompare(a.date))
+    .map(e => {
+      const emp = getEmp(e.employeeId);
+      if (!emp) return null;
+      const { rate, pay } = calcPay(e, emp);
+      return [ e.date, emp.name, e.type, e.hours, e.type==='unpaid'?'0':(+rate).toFixed(2), e.type==='unpaid'?'0':pay.toFixed(2), e.notes||'' ];
+    }).filter(Boolean);
+
+  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `punch-hours-${todayStr()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// WEEKLY TIMESHEET — Enter weekly pay amount per employee
+// ============================================================
+let timesheetWeekStart = null;
+const tsWeekly = {}; // { empId: { pay, type, entryId } }
+
+function initTimesheetWeek() {
+  const today = new Date();
+  const day = today.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const mon = new Date(today);
+  mon.setDate(today.getDate() + diff);
+  timesheetWeekStart = mon.toISOString().slice(0,10);
+}
+
+function getWeekDays(mondayStr) {
+  const days = [];
+  const mon = new Date(mondayStr + 'T12:00:00');
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    days.push(d.toISOString().slice(0,10));
+  }
+  return days;
+}
+
+function getWeekFriday(mondayStr) {
+  const d = new Date(mondayStr + 'T12:00:00');
+  d.setDate(d.getDate() + 4);
+  return d.toISOString().slice(0,10);
+}
+
+function getDefaultWeeklyPay(emp) {
+  // Pre-fill weekly salary employees with their rate, hourly gets blank
+  if (emp.payType === 'weekly') return getCurrentRate(emp);
+  return '';
+}
+
+function loadTsWeekly() {
+  const days = getWeekDays(timesheetWeekStart);
+  const mon = days[0], fri = days[4];
+  DB.employees.filter(function(e) { return e.active !== false; }).forEach(function(emp) {
+    const weekEntries = DB.timeEntries.filter(function(e) {
+      return e.employeeId === emp.id && e.date >= mon && e.date <= fri;
+    });
+    if (weekEntries.length === 0) {
+      tsWeekly[emp.id] = { pay: getDefaultWeeklyPay(emp), type: 'regular', entryId: null };
+    } else {
+      // Sum pay from all entries this week
+      let totalPay = 0;
+      weekEntries.forEach(function(e) {
+        const res = calcPay(e, emp);
+        totalPay += res.pay;
+      });
+      tsWeekly[emp.id] = { pay: +totalPay.toFixed(2), type: weekEntries[0].type, entryId: weekEntries.length === 1 ? weekEntries[0].id : null };
+    }
+  });
+}
+
+function renderTimesheet() {
+  if (!timesheetWeekStart) initTimesheetWeek();
+  Object.keys(tsWeekly).forEach(function(k) { delete tsWeekly[k]; });
+  loadTsWeekly();
+
+  const days = getWeekDays(timesheetWeekStart);
+  const fri = days[4];
+  const emps = DB.employees.filter(function(e) { return e.active !== false; });
+  const weekLabel = 'Week of ' + fmtDate(days[0]) + ' &ndash; ' + fmtDate(fri);
+
+  let html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">'
+    + '<div style="display:flex;align-items:center;gap:8px">'
+    + '<button class="btn btn-secondary btn-sm" onclick="changeWeek(-1)">&#9664; Prev</button>'
+    + '<span style="font-weight:700;font-size:16px">' + weekLabel + '</span>'
+    + '<button class="btn btn-secondary btn-sm" onclick="changeWeek(1)">Next &#9654;</button>'
+    + '<button class="btn btn-secondary btn-sm" onclick="jumpToThisWeek()">This Week</button>'
+    + '</div>'
+    + '<div style="display:flex;gap:8px">'
+    + '<button class="btn btn-secondary btn-sm" onclick="window.print()">&#128424; Print</button>'
+    + '<button class="btn btn-success" onclick="saveTimesheet()" id="ts-save-btn">&#128190; Save Week</button>'
+    + '</div></div>';
+
+  if (emps.length === 0) {
+    html += '<div class="empty-state"><div class="icon">&#128101;</div><h3>No active employees</h3></div>';
+    document.getElementById('timesheet-content').innerHTML = html;
+    return;
+  }
+
+  let grandPay = 0, rows = '';
+
+  emps.forEach(function(emp) {
+    const cell = tsWeekly[emp.id] || { pay: '', type: 'regular' };
+    const p = parseFloat(cell.pay) || 0;
+    grandPay += p;
+
+    const rateLabel = emp.payType === 'weekly' ? fmt$(getCurrentRate(emp)) + '/wk'
+      : emp.payType === 'salary' ? fmt$(getCurrentRate(emp)) + '/yr'
+      : '$' + (+getCurrentRate(emp)).toFixed(2) + '/hr';
+
+    const typeColors = { regular:'var(--text)', overtime:'var(--warning)', sick:'var(--danger)', vacation:'var(--info)', holiday:'var(--purple)', unpaid:'var(--muted)' };
+
+    rows += '<tr>'
+      + '<td class="ts-emp-cell"><div style="display:flex;align-items:center;gap:10px">'
+      + '<div class="emp-avatar" style="width:34px;height:34px;font-size:12px;flex-shrink:0">' + initials(emp.name) + '</div>'
+      + '<div><div style="font-weight:700;font-size:14px">' + emp.name + '</div>'
+      + '<div style="font-size:11px;color:var(--muted)">' + rateLabel + '</div></div>'
+      + '</div></td>'
+      + '<td style="padding:8px 14px;text-align:center">'
+      + '<div style="display:flex;align-items:center;justify-content:center;gap:4px">'
+      + '<span style="font-size:17px;font-weight:700;color:var(--success)">$</span>'
+      + '<input type="number" class="ts-hours-input" id="tsp-' + emp.id + '"'
+      + ' value="' + (cell.pay !== '' ? (+cell.pay).toFixed(2) : '') + '"'
+      + ' placeholder="0.00" min="0" step="0.01"'
+      + ' style="width:110px;font-size:17px;font-weight:800;text-align:left"'
+      + ' oninput="onTsChange(\'' + emp.id + '\')">'
+      + '</div></td>'
+      + '<td style="padding:8px 12px;text-align:center">'
+      + '<select class="ts-type-select" id="tst-' + emp.id + '"'
+      + ' style="width:95px;color:' + (typeColors[cell.type] || 'var(--text)') + '"'
+      + ' onchange="onTsChange(\'' + emp.id + '\')">'
+      + '<option value="regular"' + (cell.type === 'regular' ? ' selected' : '') + '>Regular</option>'
+      + '<option value="overtime"' + (cell.type === 'overtime' ? ' selected' : '') + '>OT 1.5x</option>'
+      + '<option value="sick"' + (cell.type === 'sick' ? ' selected' : '') + '>Sick</option>'
+      + '<option value="vacation"' + (cell.type === 'vacation' ? ' selected' : '') + '>Vacation</option>'
+      + '<option value="holiday"' + (cell.type === 'holiday' ? ' selected' : '') + '>Holiday</option>'
+      + '<option value="unpaid"' + (cell.type === 'unpaid' ? ' selected' : '') + '>Unpaid</option>'
+      + '</select></td>'
+      + '<td class="ts-total-cell ts-pay-cell" id="ts-p-' + emp.id + '" style="font-size:17px;padding-right:18px">'
+      + (p > 0 ? fmt$(p) : '&mdash;') + '</td>'
+      + '</tr>';
+  });
+
+  html += '<div class="ts-wrap"><table class="ts-table">'
+    + '<thead><tr>'
+    + '<th style="text-align:left;padding-left:14px;width:200px">Employee</th>'
+    + '<th style="width:160px">Weekly Pay<br><span style="font-weight:400;font-size:10px;color:var(--success)">enter dollar amount</span></th>'
+    + '<th style="width:110px">Type</th>'
+    + '<th style="text-align:right;padding-right:18px">Confirmed Pay</th>'
+    + '</tr></thead><tbody>' + rows
+    + '<tr class="ts-totals-row">'
+    + '<td style="padding:12px 14px;font-weight:800;font-size:13px">TOTALS</td>'
+    + '<td></td><td></td>'
+    + '<td class="ts-total-cell ts-pay-cell" style="font-size:18px;padding-right:18px" id="ts-grand-p">' + fmt$(grandPay) + '</td>'
+    + '</tr></tbody></table></div>';
+
+  const notes = localStorage.getItem('punchHours_notes_' + timesheetWeekStart) || '';
+  html += '<div class="card mt16"><div class="card-title mb8">&#128221; Week Notes</div>'
+    + '<textarea id="ts-notes" placeholder="Notes for this week..." style="min-height:80px">' + notes + '</textarea></div>';
+
+  document.getElementById('timesheet-content').innerHTML = html;
+}
+
+function onTsChange(empId) {
+  const pEl = document.getElementById('tsp-' + empId);
+  const tEl = document.getElementById('tst-' + empId);
+  const p = parseFloat(pEl && pEl.value) || 0;
+  const type = (tEl && tEl.value) || 'regular';
+
+  if (!tsWeekly[empId]) tsWeekly[empId] = {};
+  tsWeekly[empId].pay = p || '';
+  tsWeekly[empId].type = type;
+
+  const typeColors = { regular:'var(--text)', overtime:'var(--warning)', sick:'var(--danger)', vacation:'var(--info)', holiday:'var(--purple)', unpaid:'var(--muted)' };
+  if (tEl) tEl.style.color = typeColors[type] || 'var(--text)';
+
+  const dispEl = document.getElementById('ts-p-' + empId);
+  if (dispEl) dispEl.textContent = p > 0 ? fmt$(p) : '\u2014';
+  updateTsGrandTotals();
+}
+
+function updateTsGrandTotals() {
+  let grandPay = 0;
+  DB.employees.filter(function(e) { return e.active !== false; }).forEach(function(emp) {
+    grandPay += parseFloat((tsWeekly[emp.id] || {}).pay) || 0;
+  });
+  const gpEl = document.getElementById('ts-grand-p');
+  if (gpEl) gpEl.textContent = fmt$(grandPay);
+}
+
+function saveTimesheet() {
+  const fri = getWeekFriday(timesheetWeekStart);
+  const days = getWeekDays(timesheetWeekStart);
+  const mon = days[0];
+  const emps = DB.employees.filter(function(e) { return e.active !== false; });
+  let saved = 0;
+
+  emps.forEach(function(emp) {
+    const cell = tsWeekly[emp.id] || {};
+    const pay = parseFloat(cell.pay) || 0;
+    const type = cell.type || 'regular';
+
+    // Remove any existing entries for this week
+    DB.timeEntries = DB.timeEntries.filter(function(e) {
+      return !(e.employeeId === emp.id && e.date >= mon && e.date <= fri);
+    });
+
+    if (pay > 0) {
+      // Store as 40 hours with rate override so pay = entered amount
+      const hours = 40;
+      const rateOverride = +(pay / hours).toFixed(4);
+      const newEntry = { id: uid(), employeeId: emp.id, date: fri, type: type, hours: hours, rateOverride: rateOverride, notes: 'Weekly pay: ' + fmt$(pay) };
+      DB.timeEntries.push(newEntry);
+      tsWeekly[emp.id].entryId = newEntry.id;
+      saved++;
+    }
+  });
+
+  const notesEl = document.getElementById('ts-notes');
+  if (notesEl) localStorage.setItem('punchHours_notes_' + timesheetWeekStart, notesEl.value);
+
+  saveDB();
+
+  const btn = document.getElementById('ts-save-btn');
+  if (btn) {
+    btn.innerHTML = '\u2713 Saved \u2014 ' + saved + ' employees logged';
+    btn.style.background = 'var(--success)';
+    setTimeout(function() { btn.innerHTML = '&#128190; Save Week'; btn.style.background = ''; }, 3000);
+  }
+}
+
+function changeWeek(dir) {
+  const d = new Date(timesheetWeekStart + 'T12:00:00');
+  d.setDate(d.getDate() + dir * 7);
+  timesheetWeekStart = d.toISOString().slice(0,10);
+  renderTimesheet();
+}
+
+function jumpToThisWeek() {
+  initTimesheetWeek();
+  renderTimesheet();
+}
+
+function resetAllData() {
+  if (!confirm('Delete ALL employees and time entries? This cannot be undone.')) return;
+  Object.keys(localStorage).filter(k => k.startsWith('punchHours')).forEach(k => localStorage.removeItem(k));
+  DB.employees = [];
+  DB.timeEntries = [];
+  renderDashboard();
+  renderEmployees();
+  alert('Done! Clean slate.');
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function startApp() {
+  // Show loading while fetching cloud data
+  const statsEl = document.getElementById('dash-stats');
+  if (statsEl) statsEl.innerHTML = '<div style="color:var(--muted);grid-column:1/-1;text-align:center;padding:30px">☁️ Loading from cloud…</div>';
+
+  await loadDB();
+  populateEmpDropdowns();
+  renderDashboard();
+
+  const today = todayStr();
+  const monthAgo = new Date();
+  monthAgo.setDate(monthAgo.getDate() - 28);
+  const fromEl = document.getElementById('report-from');
+  const toEl = document.getElementById('report-to');
+  if (fromEl) fromEl.value = monthAgo.toISOString().slice(0,10);
+  if (toEl) toEl.value = today;
+}
+
+function init() {
+  if (checkPin()) {
+    startApp();
+  } else {
+    const overlay = document.getElementById('pin-overlay');
+    overlay.style.display = 'flex';
+    setTimeout(() => document.getElementById('pin-input').focus(), 100);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
