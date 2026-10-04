@@ -288,6 +288,7 @@ textarea { resize: vertical; min-height: 60px; }
   <div class="header-sub">Employee Time &amp; Pay Tracker</div>
   <div class="header-spacer"></div>
   <button class="btn btn-secondary btn-sm" onclick="exportAllCSV()">⬇ Export CSV</button>
+  <button class="btn btn-secondary btn-sm" onclick="openImportModal()">⬆ Import CSV</button>
   <button class="btn btn-secondary btn-sm" onclick="forcePull()" title="Pull latest from cloud">🔄</button>
   <button class="btn btn-sm" style="background:transparent;border:1px solid var(--danger);color:var(--danger)" onclick="resetAllData()">🗑 Reset All Data</button>
   <span id="sync-indicator"></span>
@@ -1869,6 +1870,189 @@ function resetAllData() {
 }
 
 // ============================================================
+// CSV IMPORT
+// ============================================================
+let _importRows = [];
+
+function openImportModal() {
+  document.getElementById('import-preview').innerHTML = '';
+  document.getElementById('import-footer').style.display = 'none';
+  document.getElementById('csv-file-input').value = '';
+  _importRows = [];
+  openModal('modal-import');
+}
+
+function handleCSVDrop(e) {
+  const file = e.dataTransfer.files[0];
+  if (file) processCSVFile(file);
+}
+function handleCSVFile(input) {
+  const file = input.files[0];
+  if (file) processCSVFile(file);
+}
+function processCSVFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => parseAndPreviewCSV(e.target.result);
+  reader.readAsText(file);
+}
+
+function parseCSVText(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return { headers: [], rows: [] };
+  const parseRow = line => {
+    const fields = []; let field = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') { inQ = !inQ; }
+      else if (line[i] === ',' && !inQ) { fields.push(field.trim()); field = ''; }
+      else { field += line[i]; }
+    }
+    fields.push(field.trim());
+    return fields.map(f => f.replace(/^"|"$/g,''));
+  };
+  const headers = parseRow(lines[0]);
+  const rows = lines.slice(1)
+    .map(l => { const v=parseRow(l); const r={}; headers.forEach((h,i)=>r[h]=v[i]||''); return r; })
+    .filter(r => Object.values(r).some(v=>v.trim()));
+  return { headers, rows };
+}
+
+function _detectCol(headers, terms) {
+  const low = headers.map(h=>h.toLowerCase().trim());
+  for (const t of terms) { const i=low.findIndex(h=>h.includes(t)); if(i>=0) return headers[i]; }
+  return null;
+}
+
+function _parseDate(s) {
+  if (!s) return null;
+  s = s.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) { let y=m[3]; if(y.length===2) y=(parseInt(y)<50?'20':'19')+y; return `${y}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`; }
+  return null;
+}
+
+function _normType(s) {
+  if (!s) return 'regular';
+  const v = s.toLowerCase().trim();
+  if (v.includes('over')||v==='ot') return 'overtime';
+  if (v.includes('sick')) return 'sick';
+  if (v.includes('vac')) return 'vacation';
+  if (v.includes('hol')) return 'holiday';
+  if (v.includes('unpaid')||v.includes('out')) return 'unpaid';
+  if (v.includes('other')||v.includes('misc')) return 'other';
+  return 'regular';
+}
+
+function parseAndPreviewCSV(text) {
+  const { headers, rows } = parseCSVText(text);
+  const colDate  = _detectCol(headers, ['date','day','week']);
+  const colEmp   = _detectCol(headers, ['employee','emp','name','worker','staff','person']);
+  const colType  = _detectCol(headers, ['type','category','kind']);
+  const colHours = _detectCol(headers, ['hours','hrs','time','qty']);
+  const colRate  = _detectCol(headers, ['rate','wage','hourly']);
+  const colNotes = _detectCol(headers, ['notes','note','memo','desc','comment']);
+  const preview  = document.getElementById('import-preview');
+
+  if (!colDate || !colEmp || !colHours) {
+    preview.innerHTML = `<div class="alert alert-warning">
+      ⚠️ Couldn't detect required columns (<strong>Date</strong>, <strong>Employee</strong>, <strong>Hours</strong>).<br>
+      Columns found: <em>${headers.join(', ')}</em><br>Rename your columns and try again.</div>`;
+    document.getElementById('import-footer').style.display = 'none';
+    return;
+  }
+
+  _importRows = []; const errors = []; const newEmps = new Set();
+  const existingLow = DB.employees.map(e=>e.name.toLowerCase());
+
+  rows.forEach((row, i) => {
+    const dateStr = _parseDate(row[colDate]);
+    const empName = (row[colEmp]||'').trim();
+    const hours   = parseFloat(row[colHours])||0;
+    if (!dateStr) { errors.push(`Row ${i+2}: bad date "${row[colDate]}"`); return; }
+    if (!empName)  { errors.push(`Row ${i+2}: missing employee`); return; }
+    const type = _normType(row[colType]);
+    if (hours<=0 && type!=='unpaid') { errors.push(`Row ${i+2}: invalid hours`); return; }
+    const rate  = colRate ? parseFloat(row[colRate])||null : null;
+    const notes = colNotes ? row[colNotes] : '';
+    if (!existingLow.includes(empName.toLowerCase())) newEmps.add(empName);
+    _importRows.push({ date:dateStr, empName, type, hours, rate, notes });
+  });
+
+  const matchedCount = _importRows.filter(r=>existingLow.includes(r.empName.toLowerCase())).length;
+  const newEmpList   = [...newEmps];
+
+  let html = `<div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="card" style="flex:1;min-width:110px;text-align:center"><div class="card-value" style="color:var(--primary)">${_importRows.length}</div><div class="card-title">Entries to Import</div></div>
+    <div class="card" style="flex:1;min-width:110px;text-align:center"><div class="card-value" style="color:var(--success)">${matchedCount}</div><div class="card-title">Matched Employees</div></div>
+    <div class="card" style="flex:1;min-width:110px;text-align:center"><div class="card-value" style="color:${newEmpList.length?'var(--warning)':'var(--muted)'}">${newEmpList.length}</div><div class="card-title">New Employees</div></div>
+  </div>`;
+
+  if (newEmpList.length) html += `<div class="alert alert-warning" style="margin-bottom:12px">
+    ⚠️ New employees (will be created with $0 rate — update their rate after import):<br><strong>${newEmpList.join(', ')}</strong></div>`;
+
+  if (errors.length) html += `<div style="margin-bottom:12px;padding:10px 12px;background:rgba(239,68,68,0.08);border-radius:var(--radius);border-left:3px solid var(--danger);font-size:12px;color:var(--danger)">
+    <strong>⚠️ ${errors.length} row(s) skipped:</strong><br>${errors.slice(0,5).join('<br>')}${errors.length>5?`<br>…and ${errors.length-5} more`:''}</div>`;
+
+  const prev8 = _importRows.slice(0,8);
+  html += `<div class="card-title mb8">Preview (first ${Math.min(8,_importRows.length)} of ${_importRows.length} rows)</div>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Employee</th><th>Type</th><th>Hours</th><th>Rate</th><th>Notes</th></tr></thead><tbody>
+    ${prev8.map(r=>`<tr>
+      <td>${fmtDate(r.date)}</td>
+      <td style="font-weight:600">${r.empName}${newEmps.has(r.empName)?' <span class="badge badge-overtime" style="font-size:10px">NEW</span>':''}</td>
+      <td>${badge(r.type)}</td><td>${r.hours}h</td>
+      <td>${r.rate?'$'+r.rate.toFixed(2):'<span style="color:var(--muted)">from profile</span>'}</td>
+      <td style="color:var(--muted);font-size:12px">${r.notes||''}</td></tr>`).join('')}
+  </tbody></table></div>`;
+
+  preview.innerHTML = html;
+  if (_importRows.length > 0) {
+    document.getElementById('import-confirm-btn').textContent = `Import ${_importRows.length} Entries`;
+    document.getElementById('import-footer').style.display = 'flex';
+  }
+}
+
+async function confirmImport() {
+  if (!_importRows.length) return;
+  const btn = document.getElementById('import-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Importing…';
+
+  // Ensure employees exist
+  const empMap = {};
+  DB.employees.forEach(e => empMap[e.name.toLowerCase()] = e);
+  _importRows.forEach(r => {
+    if (!empMap[r.empName.toLowerCase()]) {
+      const rate = r.rate || 0;
+      const newEmp = { id:uid(), name:r.empName, title:'Employee', startDate:r.date,
+        payType:'hourly', active:true, annualSickDays:5, annualVacationDays:10,
+        rateHistory:[{rate, effectiveDate:r.date, note:'Imported'}] };
+      DB.employees.push(newEmp);
+      empMap[r.empName.toLowerCase()] = newEmp;
+    }
+  });
+
+  // Add entries (skip duplicates)
+  const existing = new Set(DB.timeEntries.map(e=>`${e.date}|${e.employeeId}|${e.hours}|${e.type}`));
+  let added=0, skipped=0;
+  _importRows.forEach(r => {
+    const emp = empMap[r.empName.toLowerCase()];
+    if (!emp) return;
+    const key = `${r.date}|${emp.id}|${r.hours}|${r.type}`;
+    if (existing.has(key)) { skipped++; return; }
+    DB.timeEntries.push({ id:uid(), employeeId:emp.id, date:r.date, type:r.type,
+      hours:r.hours, rateOverride:r.rate||null, notes:r.notes||'' });
+    existing.add(key);
+    added++;
+  });
+
+  saveDB();
+  closeModal('modal-import');
+  populateEmpDropdowns();
+  renderDashboard();
+  renderEmployees();
+  alert(`✅ Import complete!\n${added} entries added${skipped?`, ${skipped} duplicates skipped`:''}`);
+}
+
+// ============================================================
 // INIT
 // ============================================================
 async function startApp() {
@@ -1901,5 +2085,39 @@ function init() {
 
 init();
 </script>
+<!-- ============================================================ -->
+<!-- MODAL: IMPORT CSV -->
+<!-- ============================================================ -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">⬆ Import CSV</div>
+      <button class="modal-close" onclick="closeModal('modal-import')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-note">
+        💡 Accepts any CSV with columns for <strong>Date</strong>, <strong>Employee</strong>, and <strong>Hours</strong> (and optionally Type, Rate, Notes).<br>
+        Dates can be <em>YYYY-MM-DD</em> or <em>MM/DD/YYYY</em>. New employees are created automatically.
+      </div>
+      <div id="import-drop-zone"
+        style="border:2px dashed var(--border);border-radius:var(--radius);padding:48px 20px;text-align:center;cursor:pointer;transition:border-color 0.15s;margin-bottom:4px"
+        onclick="document.getElementById('csv-file-input').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--primary)'"
+        ondragleave="this.style.borderColor='var(--border)'"
+        ondrop="event.preventDefault();this.style.borderColor='var(--border)';handleCSVDrop(event)">
+        <div style="font-size:36px;margin-bottom:10px">📂</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">Drop your CSV file here</div>
+        <div style="color:var(--muted);font-size:13px">or click to browse</div>
+        <input type="file" id="csv-file-input" accept=".csv,text/csv" style="display:none" onchange="handleCSVFile(this)">
+      </div>
+      <div id="import-preview" style="margin-top:16px"></div>
+    </div>
+    <div class="modal-footer" id="import-footer" style="display:none">
+      <button class="btn btn-secondary" onclick="closeModal('modal-import')">Cancel</button>
+      <button class="btn btn-primary" id="import-confirm-btn" onclick="confirmImport()">Import</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
